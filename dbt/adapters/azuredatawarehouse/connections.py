@@ -168,3 +168,39 @@ UID={CREDENTIALS.username};"
                          self.get_status(cursor), (time.time() - pre))
 
             return connection, cursor
+
+
+    def begin(self, name):
+        connection = self.get(name)
+
+        if dbt.flags.STRICT_MODE:
+            assert isinstance(connection, Connection)
+
+        if connection.transaction_open is True:
+            raise dbt.exceptions.InternalException(
+                'Tried to begin a new transaction on connection "{}", but '
+                'it already had one open!'.format(connection.get('name')))
+
+        connection.transaction_open = True
+        self.in_use[name] = connection
+
+        return connection
+
+    def commit(self, connection):
+
+        if dbt.flags.STRICT_MODE:
+            assert isinstance(connection, Connection)
+
+        connection = self.get(connection.name)
+
+        if connection.transaction_open is False:
+            raise dbt.exceptions.InternalException(
+                'Tried to commit transaction on connection "{}", but '
+                'it does not have one open!'.format(connection.name))
+
+        logger.debug('On {}: COMMIT'.format(connection.name))
+
+        connection.transaction_open = False
+        self.in_use[connection.name] = connection
+
+        return connection
