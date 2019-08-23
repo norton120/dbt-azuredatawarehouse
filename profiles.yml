@@ -1,0 +1,12 @@
+jaffle_shop:
+  target: dev
+  outputs:
+    dev:
+      type: azuredatawarehouse
+      server: my-amazing-data-warehouse.database.windows.net
+      schema: test
+      username: <my-username>
+      password: <my-password>
+      port: 1433
+      authentication: ActiveDirectoryPassword
+      database: <my-database>

@@ -11,9 +11,9 @@ setup(
     version=package_version,
     description=description,
     long_description=description,
-    author=<INSERT AUTHOR HERE>,
-    author_email=<INSERT EMAIL HERE>,
-    url=<INSERT URL HERE>,
+    author='Ethan Knox',
+    author_email='ethan@degreed.com',
+    url='https://github.com/degreed',
     packages=find_packages(),
     package_data={
         'dbt': [
@@ -22,7 +22,7 @@ setup(
         ]
     },
     install_requires=[
-        dbt-core==0.13.0,
-        pyodbc==4.0.26,
+        'dbt-core==0.13.0',
+        'pyodbc==4.0.26',
     ]
 )

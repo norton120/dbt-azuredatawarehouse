@@ -12,10 +12,17 @@ ACCEPT_EULA=Y apt-get install msodbcsql17=17.3.1.1-1 -y
 
 RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
 
-RUN mkdir /plugins
+RUN mkdir /dbt_development
 
-COPY . /plugins/dbt-azuredatawarehouse
+RUN mkdir /dbt_development/plugins
 
-WORKDIR /plugins/dbt-azuredatawarehouse
+COPY . /dbt_development/plugins/dbt-azuredatawarehouse
+
+WORKDIR /dbt_development
+RUN git clone https://github.com/fishtown-analytics/jaffle_shop.git
+RUN git clone https://github.com/fishtown-analytics/dbt-integration-tests.git
+RUN mkdir ~/.dbt
+
+RUN cp ./profiles.yml ~/.dbt/profiles.yml
 
 RUN apt-get install vim -y

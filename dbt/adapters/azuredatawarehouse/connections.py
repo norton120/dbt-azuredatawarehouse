@@ -4,11 +4,15 @@ from dbt.adapters.base import Credentials
 from dbt.adapters.sql import SQLConnectionManager
 from dbt.logger import GLOBAL_LOGGER as logger
 import dbt.exceptions  
+import time
 
 AZUREDATAWAREHOUSE_CREDENTIALS_CONTRACT = {
     'type': 'object',
     'additionalProperties': False,
     'properties': {
+        'host': {
+            'type': 'string',
+        },
         'database': {
             'type': 'string',
         },
@@ -33,7 +37,7 @@ AZUREDATAWAREHOUSE_CREDENTIALS_CONTRACT = {
         },
         
     },
-    'required': ['database', 'schema', 'authentication'],
+    'required': ['host','database', 'schema', 'authentication'],
 }
 
 
@@ -62,7 +66,7 @@ class AzureDataWarehouseConnectionManager(SQLConnectionManager):
     @classmethod
     def open(cls, conn)->pyodbc.Connection:
 
-        if conn.state == "open":
+        if getattr(conn,'state') == "open":
             logger.debug('using open connection')
             return conn
 
@@ -72,16 +76,16 @@ class AzureDataWarehouseConnectionManager(SQLConnectionManager):
         if CREDENTIALS.authentication== 'ActiveDirectoryMSI':
             raise NotImplementedError('Service discovery in Azure is not supported at this time, authentication ActiveDirectoryMSI is not supported')    
 
-        DRIVER=CREDENTIALS.driver if CREDENTIALS.driver else 'ODBC Driver 17 for SQL Server'
+        DRIVER=getattr(CREDENTIALS,"driver", 'ODBC Driver 17 for SQL Server')
         PORT=CREDENTIALS.port if CREDENTIALS.port else 1433
 
         conn_string = f"DRIVER={{{DRIVER}}};\
-        SERVER={CREDENTIALS.host};\
-        DATABASE={CREDENTIALS.database};\
-        PORT={PORT};\
-        AUTHENTICATION={CREDENTIALS.authentication};\
-        AUTOCOMMIT=True;\
-        UID={CREDENTIALS.username};"
+SERVER={CREDENTIALS.host};\
+DATABASE={CREDENTIALS.database};\
+PORT={PORT};\
+AUTHENTICATION={CREDENTIALS.authentication};\
+AUTOCOMMIT=TRUE;\
+UID={CREDENTIALS.username};"
 
         OBFUSCATED_PASSWORD = CREDENTIALS.password[0] + ("*" * len(CREDENTIALS.password))[:-2] + CREDENTIALS.password[-1]
 
@@ -90,10 +94,14 @@ class AzureDataWarehouseConnectionManager(SQLConnectionManager):
         conn_string += f"PWD={CREDENTIALS.password};"
 
         try:
-            handle = pyodbc.connect(conn_string)
-        except pyodbc.Error as e
-            conn.state = 'fail'
-            conn.handle = None
+            handle=pyodbc.connect(conn_string)
+            conn.state='open'
+            conn.handle=handle
+            logger.debug('new connection successfully opened')
+    
+        except pyodbc.Error as e:
+            conn.state='fail'
+            conn.handle=None
             logger.critical(e)
             raise dbt.exceptions.FailedToConnectException(str(e))
 
@@ -105,7 +113,7 @@ class AzureDataWarehouseConnectionManager(SQLConnectionManager):
         return "OK"
 
     
-    def cancel(self, conn: pyodbc.Connection)->None
+    def cancel(self, conn: pyodbc.Connection)->None:
         pass
 
     @contextmanager
@@ -129,3 +137,34 @@ class AzureDataWarehouseConnectionManager(SQLConnectionManager):
             attempt_release(connection_name)
             raise dbt.exceptions.RuntimeException(str(e))
 
+    def add_query(self, sql, name=None, auto_begin=True, bindings=None,
+                  abridge_sql_log=False):
+        connection = self.get(name)
+        connection_name = connection.name
+
+        if auto_begin and connection.transaction_open is False:
+            self.begin(connection_name)
+
+        logger.debug('Using {} connection "{}".'
+                     .format(self.TYPE, connection_name))
+
+        with self.exception_handler(sql, connection_name):
+            if abridge_sql_log:
+                logger.debug('On %s: %s....', connection_name, sql[0:512])
+            else:
+                logger.debug('On %s: %s', connection_name, sql)
+            pre = time.time()
+
+            cursor = connection.handle.cursor()
+
+            args = [sql]
+            if bindings is not None:
+                args.append(bindings)
+                
+            logger.debug(f'executing "{args[0]}"...')
+            cursor.execute(*args)
+
+            logger.debug("SQL status: %s in %0.2f seconds",
+                         self.get_status(cursor), (time.time() - pre))
+
+            return connection, cursor

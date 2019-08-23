@@ -9,4 +9,6 @@ class AzureDataWarehouseAdapter(SQLAdapter):
     def is_cancelable(cls)->bool:
         return False
 
-
+    @classmethod
+    def date_function(cls)->str:
+        return 'datenow()'
