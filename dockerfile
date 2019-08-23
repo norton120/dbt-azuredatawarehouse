@@ -19,10 +19,12 @@ RUN mkdir /dbt_development/plugins
 COPY . /dbt_development/plugins/dbt-azuredatawarehouse
 
 WORKDIR /dbt_development
+
+RUN apt-get install git -y 
 RUN git clone https://github.com/fishtown-analytics/jaffle_shop.git
 RUN git clone https://github.com/fishtown-analytics/dbt-integration-tests.git
 RUN mkdir ~/.dbt
 
-RUN cp ./profiles.yml ~/.dbt/profiles.yml
+RUN cp ./plugins/dbt-azuredatawarehouse/profiles.yml ~/.dbt/profiles.yml
 
 RUN apt-get install vim -y

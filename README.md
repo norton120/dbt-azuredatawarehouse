@@ -15,7 +15,7 @@ docker build . -t dbt-azure-dw
 4. Run a bash shell in the container:
 
 ```
-docker run -it dbt-azure-dw /bin/bash
+docker run -v $(PWD):/dbt_development/plugins -it dbt-azure-dw /bin/bash
 ```
 
 you can then jump into `jaffle_shop` and try to make it run against your ADW!  
