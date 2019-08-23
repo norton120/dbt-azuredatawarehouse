@@ -1,3 +1,12 @@
+# dbt-azuredatawarehouse
+
+Plugin for [dbt](https://github.com/fishtown-analytics/dbt) that enables using Azure Data Warehouse as a target. 
+
+*NOTE:* No passing builds at this time - this is currently a WIP project. Contributors welcome to help get those red lights green! 
+
+## building your `profiles.yml`
+Use the profiles.yml file included as a guide, updating with your creds. You can find all the creds you need under _Home > dbname (account/dbname) - Connection strings_ in Azure, along with the username and password for authentication. 
+
 ## Getting Started
 1. Run this to keep your profiles.yml from tracking:
 
